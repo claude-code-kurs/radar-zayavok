@@ -11,7 +11,7 @@
 | 1 | `lesson-01-solution` |
 | 2 | `lesson-02-solution` |
 | 3 | `lesson-03-solution` |
-| 4 | скоро |
+| 4 | `lesson-04-solution` |
 | 5 | скоро |
 | 6 | скоро |
 | 7 | скоро |
