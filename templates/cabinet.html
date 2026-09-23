@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Кабинет — заявки</title>
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+
+  <header class="cabinet-header">
+    <h1>Заявки</h1>
+    <p class="tagline">Всего в базе: {{ requests | length }}</p>
+  </header>
+
+  <main>
+    {% for item in requests %}
+    <article class="request">
+      <p class="request-text">{{ item["text"] }}</p>
+      <p class="request-meta">
+        {{ item["author"] }} · {{ item["source"] }} · {{ item["created_at"] }}
+      </p>
+    </article>
+    {% endfor %}
+  </main>
+
+</body>
+</html>
