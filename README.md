@@ -10,7 +10,7 @@
 |---|---|
 | 1 | `lesson-01-solution` |
 | 2 | `lesson-02-solution` |
-| 3 | скоро |
+| 3 | `lesson-03-solution` |
 | 4 | скоро |
 | 5 | скоро |
 | 6 | скоро |
