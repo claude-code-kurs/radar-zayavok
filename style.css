@@ -1,0 +1,101 @@
+:root {
+  --accent: #1a53c8;
+  --text: #1c1c1c;
+  --muted: #5c5c5c;
+  --line: #e2e2e2;
+}
+
+body {
+  margin: 0;
+  padding: 0 20px;
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: 17px;
+  line-height: 1.6;
+  color: var(--text);
+  background: #fff;
+}
+
+header,
+main,
+footer {
+  max-width: 720px;
+  margin: 0 auto;
+}
+
+.hero {
+  padding: 60px 0 40px;
+}
+
+.hero h1 {
+  margin: 0;
+  font-size: 56px;
+  line-height: 1.1;
+  color: var(--accent);
+}
+
+.tagline {
+  margin: 12px 0 0;
+  font-size: 20px;
+  color: var(--muted);
+}
+
+h2 {
+  margin: 40px 0 12px;
+  font-size: 24px;
+}
+
+.case {
+  border-left: 3px solid var(--accent);
+  padding-left: 16px;
+  margin-bottom: 24px;
+}
+
+.case h3 {
+  margin: 0 0 6px;
+  font-size: 19px;
+}
+
+.case p {
+  margin: 0;
+  color: var(--muted);
+}
+
+.contact-list {
+  margin: 12px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.contact-list li {
+  margin-bottom: 6px;
+}
+
+a {
+  color: var(--accent);
+}
+
+footer {
+  margin-top: 56px;
+  padding: 20px 0 40px;
+  border-top: 1px solid var(--line);
+  color: var(--muted);
+  font-size: 15px;
+}
+
+footer p {
+  margin: 4px 0;
+}
+
+@media (max-width: 600px) {
+  .hero {
+    padding: 36px 0 24px;
+  }
+
+  .hero h1 {
+    font-size: 38px;
+  }
+
+  .tagline {
+    font-size: 18px;
+  }
+}
