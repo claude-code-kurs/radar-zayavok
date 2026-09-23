@@ -1,0 +1,9 @@
+# Секреты и мусор — никогда не попадают в git.
+.env
+radar.db
+__pycache__/
+.venv/
+
+# Файл сессии юзербота (Telethon) — полный доступ к аккаунту Telegram.
+*.session
+*.session-journal
