@@ -50,6 +50,13 @@ def login_submit(request: Request, login: str = Form(), password: str = Form()):
     )
 
 
+@app.get("/logout")
+def logout():
+    response = RedirectResponse("/login", status_code=303)
+    response.delete_cookie(COOKIE_NAME)
+    return response
+
+
 @app.get("/cabinet")
 def cabinet(request: Request):
     if not check_session(request.cookies.get(COOKIE_NAME), SECRET_KEY):
