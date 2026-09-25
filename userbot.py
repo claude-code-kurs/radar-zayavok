@@ -126,4 +126,9 @@ async def main():
 
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    try:
+        asyncio.run(main())
+    except KeyboardInterrupt:
+        # Ctrl+C — это обычное завершение, а не авария: выходим одной строкой,
+        # без десятка строк трассировки.
+        print("Остановлено.")
