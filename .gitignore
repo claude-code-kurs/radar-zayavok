@@ -2,3 +2,5 @@
 __pycache__
 .env
 radar.db
+*.session
+*.session-journal
