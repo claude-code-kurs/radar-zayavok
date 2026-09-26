@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Кабинет — настройки</title>
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+
+  <header class="cabinet-header">
+    <h1>Настройки</h1>
+    <p class="tagline">
+      <a href="/cabinet">К ленте</a> ·
+      <a href="/cabinet/stats">Статистика</a> ·
+      <a href="/logout">Выйти</a>
+    </p>
+  </header>
+
+  <main>
+
+    <section>
+      <h2>Источники</h2>
+      <p class="stats-note">
+        Юзербот перечитывает этот список на каждом обходе — перезапускать его не нужно.
+        Старая дата последнего сообщения значит, что источник замолчал, а не что радар сломался.
+      </p>
+
+      <table class="settings-table">
+        <tr>
+          <th>Название или id</th>
+          <th>Последнее сообщение</th>
+          <th>Находок</th>
+          <th></th>
+        </tr>
+        {% for source in sources %}
+        <tr>
+          <td>
+            <form method="post" action="/cabinet/settings/sources/{{ source['id'] }}/save">
+              <input type="text" name="name" value="{{ source['name'] }}" required>
+              <button type="submit">Сохранить</button>
+            </form>
+          </td>
+          <td>{{ source["last_seen_at"] or "—" }}</td>
+          <td>{{ source["findings_count"] }}</td>
+          <td>
+            <form method="post" action="/cabinet/settings/sources/{{ source['id'] }}/delete">
+              <button type="submit" class="danger">Убрать</button>
+            </form>
+          </td>
+        </tr>
+        {% endfor %}
+      </table>
+
+      <form class="settings-add" method="post" action="/cabinet/settings/sources/add">
+        <input type="text" name="name" placeholder="username группы или id" required>
+        <button type="submit">Добавить источник</button>
+      </form>
+    </section>
+
+    <section>
+      <h2>Ключевые слова</h2>
+      <p class="stats-note">
+        Совпадение считается с начала слова: «бот» найдётся в «боты», но не внутри «работа».
+      </p>
+
+      <ul class="settings-list">
+        {% for keyword in keywords %}
+        <li>
+          <form method="post" action="/cabinet/settings/keywords/{{ keyword['id'] }}/save">
+            <input type="text" name="word" value="{{ keyword['word'] }}" required>
+            <button type="submit">Сохранить</button>
+          </form>
+          <form method="post" action="/cabinet/settings/keywords/{{ keyword['id'] }}/delete">
+            <button type="submit" class="danger">Убрать</button>
+          </form>
+        </li>
+        {% endfor %}
+      </ul>
+
+      <form class="settings-add" method="post" action="/cabinet/settings/keywords/add">
+        <input type="text" name="word" placeholder="новое слово" required>
+        <button type="submit">Добавить слово</button>
+      </form>
+    </section>
+
+  </main>
+
+</body>
+</html>

@@ -22,6 +22,7 @@ from telethon.tl.types import Channel, Chat, User
 from db import (
     add_finding_to_source,
     content_hash_exists,
+    get_keywords,
     get_sources,
     insert_request,
     mark_source_seen,
@@ -149,8 +150,12 @@ async def fetch_messages(client, entity, last_id):
     return list(reversed(messages))
 
 
-async def process_source(client, source, state):
-    """Один источник за один заход: прочитать, отсеять, записать находки."""
+async def process_source(client, source, state, keywords):
+    """Один источник за один заход: прочитать, отсеять, записать находки.
+
+    Список ключевых слов приходит снаружи: его перечитывают из базы на каждом обходе,
+    чтобы правка на странице настроек в кабинете долетала до уже запущенного юзербота.
+    """
     entity = await resolve_source(client, source["name"])
     if entity is None:
         return
@@ -187,7 +192,7 @@ async def process_source(client, source, state):
             continue
 
         with_text += 1
-        matched = matched_keywords(text)
+        matched = matched_keywords(text, keywords)
         if not matched:
             continue
         passed_keywords += 1
@@ -263,16 +268,25 @@ async def main():
     await client.start()
 
     while True:
+        # Источники и ключевые слова перечитываем на каждом обходе, а не один раз при
+        # старте: их правят на странице настроек в кабинете, и правка должна долетать
+        # до уже запущенного юзербота, без перезапуска.
         sources = get_sources()
+        keywords = [row["word"] for row in get_keywords()]
         if not sources:
             raise SystemExit(
-                "В таблице sources нет ни одного источника. Впишите свои группы "
-                "(init_db.py заводит две заглушки) и запустите снова."
+                "В таблице sources нет ни одного источника. Добавьте их на странице "
+                "настроек в кабинете и запустите снова."
+            )
+        if not keywords:
+            raise SystemExit(
+                "В таблице keywords нет ни одного слова — отсев пропустил бы всё подряд. "
+                "Добавьте слова на странице настроек в кабинете."
             )
 
         state = load_state()
         for source in sources:
-            await process_source(client, source, state)
+            await process_source(client, source, state, keywords)
             save_state(state)
 
         await asyncio.sleep(POLL_INTERVAL)

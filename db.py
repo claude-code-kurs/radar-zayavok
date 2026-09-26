@@ -1,6 +1,7 @@
-"""Работа с базой: заявки и источники."""
+"""Работа с базой: заявки, источники и ключевые слова."""
 
 import sqlite3
+from datetime import datetime, timezone
 from pathlib import Path
 
 from settings import SELF_PRESENTATION_REASON
@@ -8,6 +9,9 @@ from settings import SELF_PRESENTATION_REASON
 # Запись считается неразмеченной, пока в ai_type ничего нет. Пометка «не проверено ИИ»
 # тоже считается разметкой: такая запись в модель больше не уходит.
 UNCLASSIFIED = "ai_type IS NULL OR ai_type = ''"
+
+# Статусы работы с заявкой. Первый — значение по умолчанию.
+STATUSES = ("новое", "в работу", "мусор", "отработано")
 
 DB_PATH = Path(__file__).parent / "radar.db"
 
@@ -18,17 +22,70 @@ def connect():
     return conn
 
 
-def get_requests():
-    """Все заявки для ленты кабинета, сначала самые свежие."""
+def get_requests(status=None, query=None):
+    """Заявки для ленты кабинета, сначала самые свежие.
+
+    Можно сузить: по статусу и по подстроке в тексте заявки. Пустые значения означают
+    «не сужать» — так фильтр и поиск складываются друг с другом.
+    """
+    sql = """
+        SELECT id, text, author, contact, source, created_at,
+               ai_type, ai_profile, ai_reason, status
+        FROM requests
+    """
+    conditions = []
+    values = []
+    if status:
+        conditions.append("status = ?")
+        values.append(status)
+    if query:
+        conditions.append("text LIKE ?")
+        values.append(f"%{query}%")
+    if conditions:
+        sql += " WHERE " + " AND ".join(conditions)
+    sql += " ORDER BY created_at DESC"
+
     conn = connect()
     try:
-        return conn.execute(
+        return conn.execute(sql, values).fetchall()
+    finally:
+        conn.close()
+
+
+def set_status(request_id, status):
+    """Меняет статус заявки. Чужие значения не принимаем."""
+    if status not in STATUSES:
+        return False
+    conn = connect()
+    try:
+        conn.execute("UPDATE requests SET status = ? WHERE id = ?", (status, request_id))
+        conn.commit()
+        return True
+    finally:
+        conn.close()
+
+
+def insert_site_request(author, contact, text):
+    """Заявка с формы на визитке — в ту же таблицу, что и находки юзербота.
+
+    `source_message_id` оставляем NULL, а не пустой строкой: у поля стоит UNIQUE, и
+    вторую пустую строку SQLite отклонит как повтор первой — вторая заявка с сайта
+    просто не сохранилась бы.
+    """
+    conn = connect()
+    try:
+        conn.execute(
             """
-            SELECT id, text, author, source, created_at, ai_type, ai_profile, ai_reason
-            FROM requests
-            ORDER BY created_at DESC
-            """
-        ).fetchall()
+            INSERT INTO requests (
+                text, author, contact, source, source_message_id, message_url,
+                created_at, matched_keywords, edit_date, content_hash,
+                ai_type, ai_profile, ai_reason, status
+            )
+            VALUES (?, ?, ?, 'сайт', NULL, '', ?, '', '', '', '', '', '', 'новое')
+            """,
+            (text, author, contact, datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")),
+        )
+        conn.commit()
     finally:
         conn.close()
 
@@ -131,6 +188,79 @@ def get_sources():
             ORDER BY id
             """
         ).fetchall()
+    finally:
+        conn.close()
+
+
+def add_source(name):
+    """Новый источник со страницы настроек. chat_id заполнится при первом подключении."""
+    conn = connect()
+    try:
+        conn.execute("INSERT INTO sources (name) VALUES (?)", (name,))
+        conn.commit()
+    finally:
+        conn.close()
+
+
+def rename_source(source_id, name):
+    """Источник переименовали на странице настроек — числовой chat_id сбрасываем.
+
+    Иначе новое имя осталось бы привязано к старому чату: chat_id заполнится заново
+    при следующем подключении.
+    """
+    conn = connect()
+    try:
+        conn.execute(
+            "UPDATE sources SET name = ?, chat_id = NULL WHERE id = ?",
+            (name, source_id),
+        )
+        conn.commit()
+    finally:
+        conn.close()
+
+
+def delete_source(source_id):
+    conn = connect()
+    try:
+        conn.execute("DELETE FROM sources WHERE id = ?", (source_id,))
+        conn.commit()
+    finally:
+        conn.close()
+
+
+def get_keywords():
+    """Ключевые слова из базы: их правят на странице настроек, юзербот читает отсюда."""
+    conn = connect()
+    try:
+        return conn.execute("SELECT id, word FROM keywords ORDER BY word").fetchall()
+    finally:
+        conn.close()
+
+
+def add_keyword(word):
+    conn = connect()
+    try:
+        # Одно и то же слово дважды не заводим: в схеме на это стоит UNIQUE.
+        conn.execute("INSERT OR IGNORE INTO keywords (word) VALUES (?)", (word,))
+        conn.commit()
+    finally:
+        conn.close()
+
+
+def rename_keyword(keyword_id, word):
+    conn = connect()
+    try:
+        conn.execute("UPDATE keywords SET word = ? WHERE id = ?", (word, keyword_id))
+        conn.commit()
+    finally:
+        conn.close()
+
+
+def delete_keyword(keyword_id):
+    conn = connect()
+    try:
+        conn.execute("DELETE FROM keywords WHERE id = ?", (keyword_id,))
+        conn.commit()
     finally:
         conn.close()
 

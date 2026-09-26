@@ -5,19 +5,41 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Кабинет — заявки</title>
   <link rel="stylesheet" href="/static/style.css">
+  <!-- HTMX: отправляет смену статуса на сервер, не перезагружая страницу. -->
+  <script src="https://cdn.jsdelivr.net/npm/htmx.org@2.0.4/dist/htmx.min.js"></script>
 </head>
 <body>
 
   <header class="cabinet-header">
     <h1>Заявки</h1>
     <p class="tagline">
-      Всего в базе: {{ requests | length }} ·
+      Показано: {{ requests | length }} ·
+      <a href="/cabinet/settings">Настройки</a> ·
       <a href="/cabinet/stats">Статистика</a> ·
       <a href="/logout">Выйти</a>
     </p>
   </header>
 
   <main>
+
+    <form class="filters" method="get" action="/cabinet">
+      <label for="status">Статус</label>
+      <select id="status" name="status">
+        <option value="">все</option>
+        {% for name in statuses %}
+        <option value="{{ name }}" {% if name == status %}selected{% endif %}>{{ name }}</option>
+        {% endfor %}
+      </select>
+
+      <label for="q">Поиск по тексту</label>
+      <input type="search" id="q" name="q" value="{{ query }}">
+
+      <button type="submit">Показать</button>
+      {% if status or query %}
+      <a class="filters-reset" href="/cabinet">сбросить</a>
+      {% endif %}
+    </form>
+
     {% for item in requests %}
     {% set full_text = item["text"] | plain %}
     <article class="request">
@@ -30,6 +52,7 @@
       {% endif %}
       <p class="request-meta">
         {{ item["author"] }} · {{ item["source"] }} · {{ item["created_at"] }}
+        {% if item["contact"] %} · контакт: {{ item["contact"] }}{% endif %}
       </p>
       {% if item["ai_type"] %}
       <p class="request-ai">
@@ -39,8 +62,23 @@
       {% else %}
       <p class="request-ai request-ai-empty">ИИ: пока не размечено</p>
       {% endif %}
+
+      <select class="request-status"
+              name="status"
+              hx-post="/cabinet/status/{{ item['id'] }}"
+              hx-trigger="change"
+              hx-swap="none">
+        {% for name in statuses %}
+        <option value="{{ name }}" {% if name == item["status"] %}selected{% endif %}>{{ name }}</option>
+        {% endfor %}
+      </select>
     </article>
     {% endfor %}
+
+    {% if not requests %}
+    <p class="empty">Под фильтр ничего не подошло.</p>
+    {% endif %}
+
   </main>
 
 </body>

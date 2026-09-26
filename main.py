@@ -3,13 +3,27 @@ import re
 from datetime import datetime
 
 from dotenv import load_dotenv
-from fastapi import FastAPI, Form, Request
+from fastapi import FastAPI, Form, Request, Response
 from fastapi.responses import RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
 from auth import COOKIE_NAME, check_password, check_session, make_session
-from db import get_requests, get_stats
+from db import (
+    STATUSES,
+    add_keyword,
+    add_source,
+    delete_keyword,
+    delete_source,
+    get_keywords,
+    get_requests,
+    get_sources,
+    get_stats,
+    insert_site_request,
+    rename_keyword,
+    rename_source,
+    set_status,
+)
 
 load_dotenv()
 
@@ -36,6 +50,11 @@ def plain_text(text):
 
 
 templates.env.filters["plain"] = plain_text
+
+
+def authorized(request):
+    """Пускать ли в кабинет: cookie должна быть подписана нашим секретом."""
+    return check_session(request.cookies.get(COOKIE_NAME), SECRET_KEY)
 
 
 @app.get("/")
@@ -68,7 +87,7 @@ def login_submit(request: Request, login: str = Form(), password: str = Form()):
 
 @app.get("/cabinet/stats")
 def cabinet_stats(request: Request):
-    if not check_session(request.cookies.get(COOKIE_NAME), SECRET_KEY):
+    if not authorized(request):
         return RedirectResponse("/login", status_code=303)
     return templates.TemplateResponse(
         request=request,
@@ -85,11 +104,104 @@ def logout():
 
 
 @app.get("/cabinet")
-def cabinet(request: Request):
-    if not check_session(request.cookies.get(COOKIE_NAME), SECRET_KEY):
+def cabinet(request: Request, status: str = "", q: str = ""):
+    if not authorized(request):
         return RedirectResponse("/login", status_code=303)
     return templates.TemplateResponse(
         request=request,
         name="cabinet.html",
-        context={"requests": get_requests()},
+        context={
+            "requests": get_requests(status=status, query=q),
+            "statuses": STATUSES,
+            "status": status,
+            "query": q,
+        },
+    )
+
+
+@app.post("/cabinet/status/{request_id}")
+def cabinet_set_status(request: Request, request_id: int, status: str = Form()):
+    """Переключатель статуса на карточке. Отвечает пустотой: страница не перезагружается."""
+    if not authorized(request):
+        return Response(status_code=403)
+    set_status(request_id, status)
+    return Response(status_code=204)
+
+
+@app.get("/cabinet/settings")
+def cabinet_settings(request: Request):
+    if not authorized(request):
+        return RedirectResponse("/login", status_code=303)
+    return templates.TemplateResponse(
+        request=request,
+        name="settings.html",
+        context={"sources": get_sources(), "keywords": get_keywords()},
+    )
+
+
+@app.post("/cabinet/settings/sources/add")
+def settings_source_add(request: Request, name: str = Form()):
+    if not authorized(request):
+        return RedirectResponse("/login", status_code=303)
+    if name.strip():
+        add_source(name.strip())
+    return RedirectResponse("/cabinet/settings", status_code=303)
+
+
+@app.post("/cabinet/settings/sources/{source_id}/save")
+def settings_source_save(request: Request, source_id: int, name: str = Form()):
+    if not authorized(request):
+        return RedirectResponse("/login", status_code=303)
+    if name.strip():
+        rename_source(source_id, name.strip())
+    return RedirectResponse("/cabinet/settings", status_code=303)
+
+
+@app.post("/cabinet/settings/sources/{source_id}/delete")
+def settings_source_delete(request: Request, source_id: int):
+    if not authorized(request):
+        return RedirectResponse("/login", status_code=303)
+    delete_source(source_id)
+    return RedirectResponse("/cabinet/settings", status_code=303)
+
+
+@app.post("/cabinet/settings/keywords/add")
+def settings_keyword_add(request: Request, word: str = Form()):
+    if not authorized(request):
+        return RedirectResponse("/login", status_code=303)
+    if word.strip():
+        add_keyword(word.strip().lower())
+    return RedirectResponse("/cabinet/settings", status_code=303)
+
+
+@app.post("/cabinet/settings/keywords/{keyword_id}/save")
+def settings_keyword_save(request: Request, keyword_id: int, word: str = Form()):
+    if not authorized(request):
+        return RedirectResponse("/login", status_code=303)
+    if word.strip():
+        rename_keyword(keyword_id, word.strip().lower())
+    return RedirectResponse("/cabinet/settings", status_code=303)
+
+
+@app.post("/cabinet/settings/keywords/{keyword_id}/delete")
+def settings_keyword_delete(request: Request, keyword_id: int):
+    if not authorized(request):
+        return RedirectResponse("/login", status_code=303)
+    delete_keyword(keyword_id)
+    return RedirectResponse("/cabinet/settings", status_code=303)
+
+
+@app.post("/zayavka")
+def site_request(
+    request: Request,
+    name: str = Form(),
+    contact: str = Form(),
+    task: str = Form(),
+):
+    """Заявка с формы на визитке — в ту же таблицу, что и находки юзербота."""
+    insert_site_request(author=name.strip(), contact=contact.strip(), text=task.strip())
+    return templates.TemplateResponse(
+        request=request,
+        name="index.html",
+        context={"year": datetime.now().year, "sent": True},
     )

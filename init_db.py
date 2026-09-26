@@ -6,6 +6,7 @@
 """
 
 from db import connect
+from settings import DEFAULT_KEYWORDS
 
 SCHEMA_REQUESTS = """
 CREATE TABLE IF NOT EXISTS requests (
@@ -31,6 +32,9 @@ CREATE TABLE IF NOT EXISTS requests (
     ai_type           TEXT,
     ai_profile        TEXT,
     ai_reason         TEXT,
+    -- Контакт для связи заполняется у заявок с формы на визитке (урок 8). У заявок из
+    -- чата он пуст: там достаточно ссылки на сообщение.
+    contact           TEXT,
     status            TEXT DEFAULT 'новое'
 )
 """
@@ -45,6 +49,15 @@ CREATE TABLE IF NOT EXISTS sources (
     chat_id        TEXT,
     last_seen_at   TEXT,
     findings_count INTEGER DEFAULT 0
+)
+"""
+
+# Ключевые слова тоже живут в базе — с урока 8 их правят на странице настроек в
+# кабинете, а не в файле с кодом.
+SCHEMA_KEYWORDS = """
+CREATE TABLE IF NOT EXISTS keywords (
+    id   INTEGER PRIMARY KEY AUTOINCREMENT,
+    word TEXT NOT NULL UNIQUE
 )
 """
 
@@ -106,6 +119,7 @@ def main():
     try:
         conn.execute(SCHEMA_REQUESTS)
         conn.execute(SCHEMA_SOURCES)
+        conn.execute(SCHEMA_KEYWORDS)
 
         # И заявки, и источники добавляем только в пустые таблицы: скрипт можно
         # запускать повторно, и от второго запуска в базе не должно появиться
@@ -129,6 +143,13 @@ def main():
                 TEST_SOURCES,
             )
             print(f"Добавлено источников: {len(TEST_SOURCES)}")
+
+        if not conn.execute("SELECT COUNT(*) FROM keywords").fetchone()[0]:
+            conn.executemany(
+                "INSERT INTO keywords (word) VALUES (?)",
+                [(word,) for word in DEFAULT_KEYWORDS],
+            )
+            print(f"Добавлено ключевых слов: {len(DEFAULT_KEYWORDS)}")
 
         conn.commit()
     finally:

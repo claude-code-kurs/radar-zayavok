@@ -8,7 +8,6 @@ import hashlib
 import re
 
 from settings import (
-    KEYWORDS,
     NEAR_DUPLICATE_MIN_WORDS,
     NEAR_DUPLICATE_RATIO,
     HIRING_MARKERS,
@@ -78,14 +77,17 @@ def content_hash(text):
     return hashlib.sha256(normalize_text(text).encode("utf-8")).hexdigest()
 
 
-def matched_keywords(text):
+def matched_keywords(text, keywords):
     """Какие ключевые слова совпали. Пустой список значит «не прошло отсев».
+
+    Список слов приходит снаружи, из базы: его правят на странице настроек в кабинете,
+    и юзербот перечитывает его на каждом опросе.
 
     Совпадение считаем только с начала слова, иначе «бот» найдётся внутри «работа».
     """
     words = normalize_text(text).split()
     matched = []
-    for keyword in KEYWORDS:
+    for keyword in keywords:
         if any(word.startswith(keyword) for word in words):
             matched.append(keyword)
     return matched
