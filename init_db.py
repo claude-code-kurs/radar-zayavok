@@ -71,20 +71,26 @@ def main():
     conn = connect()
     try:
         conn.execute(SCHEMA)
-        conn.executemany(
-            """
-            INSERT INTO requests (
-                text, author, source, source_message_id, message_url, created_at,
-                ai_label, ai_reason, status
+
+        # Тестовые заявки добавляем только в пустую таблицу: скрипт можно запускать
+        # повторно, и от второго запуска в базе не должно появиться их вдвое больше.
+        if not conn.execute("SELECT COUNT(*) FROM requests").fetchone()[0]:
+            conn.executemany(
+                """
+                INSERT INTO requests (
+                    text, author, source, source_message_id, message_url, created_at,
+                    ai_label, ai_reason, status
+                )
+                VALUES (?, ?, ?, ?, ?, ?, '', '', 'новое')
+                """,
+                TEST_REQUESTS,
             )
-            VALUES (?, ?, ?, ?, ?, ?, '', '', 'новое')
-            """,
-            TEST_REQUESTS,
-        )
+            print(f"Добавлено тестовых заявок: {len(TEST_REQUESTS)}")
+
         conn.commit()
     finally:
         conn.close()
-    print(f"База готова, добавлено заявок: {len(TEST_REQUESTS)}")
+    print("База готова.")
 
 
 if __name__ == "__main__":
