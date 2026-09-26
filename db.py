@@ -3,8 +3,6 @@
 import sqlite3
 from pathlib import Path
 
-from settings import SELF_PRESENTATION_REASON
-
 # Запись считается неразмеченной, пока в ai_type ничего нет. Пометка «не проверено ИИ»
 # тоже считается разметкой: такая запись в модель больше не уходит.
 UNCLASSIFIED = "ai_type IS NULL OR ai_type = ''"
@@ -74,48 +72,6 @@ def set_ai_result(request_id, ai_type, ai_profile, reason):
             (ai_type, ai_profile, reason, request_id),
         )
         conn.commit()
-    finally:
-        conn.close()
-
-
-def get_stats():
-    """Числа для страницы статистики.
-
-    Сколько сообщений всего прочитано из чатов и сколько отсеял словарь, база не знает:
-    в неё попадают только те, что словарь уже пропустил. Поэтому считаем по тому, что
-    есть, — от записей в базе и дальше по шагам.
-    """
-    conn = connect()
-    try:
-        total = conn.execute("SELECT COUNT(*) FROM requests").fetchone()[0]
-        by_type = conn.execute(
-            """
-            SELECT CASE WHEN ai_type IS NULL OR ai_type = '' THEN 'не размечено' ELSE ai_type END AS name,
-                   COUNT(*) AS count
-            FROM requests
-            GROUP BY name
-            ORDER BY count DESC
-            """
-        ).fetchall()
-        by_profile = conn.execute(
-            """
-            SELECT CASE WHEN ai_profile IS NULL OR ai_profile = '' THEN 'не размечено' ELSE ai_profile END AS name,
-                   COUNT(*) AS count
-            FROM requests
-            GROUP BY name
-            ORDER BY count DESC
-            """
-        ).fetchall()
-        cheap_layer = conn.execute(
-            "SELECT COUNT(*) FROM requests WHERE ai_reason LIKE ?",
-            (f"{SELF_PRESENTATION_REASON}%",),
-        ).fetchone()[0]
-        return {
-            "total": total,
-            "by_type": by_type,
-            "by_profile": by_profile,
-            "cheap_layer": cheap_layer,
-        }
     finally:
         conn.close()
 
