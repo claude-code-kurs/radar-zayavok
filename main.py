@@ -1,4 +1,5 @@
 import os
+import re
 from datetime import datetime
 
 from dotenv import load_dotenv
@@ -20,6 +21,21 @@ app = FastAPI()
 
 app.mount("/static", StaticFiles(directory="static"), name="static")
 templates = Jinja2Templates(directory="templates")
+
+# Telegram отдаёт текст с markdown-разметкой: ссылки в виде [подпись](адрес), выделения
+# звёздочками. В ленте это мешает читать, поэтому чистим при показе.
+MARKDOWN_LINK_RE = re.compile(r"\[([^\]]+)\]\(([^)]+)\)")
+MARKDOWN_MARKS_RE = re.compile(r"[*_`~]")
+
+
+def plain_text(text):
+    """Текст без markdown-разметки: от ссылки остаётся только её подпись."""
+    if not text:
+        return ""
+    return MARKDOWN_MARKS_RE.sub("", MARKDOWN_LINK_RE.sub(r"\1", text)).strip()
+
+
+templates.env.filters["plain"] = plain_text
 
 
 @app.get("/")

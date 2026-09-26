@@ -149,6 +149,19 @@ footer p {
 
 .request-text {
   margin: 0 0 8px;
+  white-space: pre-line;
+}
+
+.request-full summary {
+  cursor: pointer;
+  color: var(--accent);
+  font-size: 15px;
+  margin-bottom: 8px;
+}
+
+.request-full p {
+  margin: 0 0 8px;
+  white-space: pre-line;
 }
 
 .request-meta {

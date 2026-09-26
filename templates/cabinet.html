@@ -15,8 +15,15 @@
 
   <main>
     {% for item in requests %}
+    {% set full_text = item["text"] | plain %}
     <article class="request">
-      <p class="request-text">{{ item["text"] }}</p>
+      <p class="request-text">{{ full_text | truncate(300, false, "…") }}</p>
+      {% if full_text | length > 300 %}
+      <details class="request-full">
+        <summary>Показать полностью</summary>
+        <p>{{ full_text }}</p>
+      </details>
+      {% endif %}
       <p class="request-meta">
         {{ item["author"] }} · {{ item["source"] }} · {{ item["created_at"] }}
       </p>

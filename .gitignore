@@ -4,3 +4,4 @@ __pycache__
 radar.db
 *.session
 *.session-journal
+state.json

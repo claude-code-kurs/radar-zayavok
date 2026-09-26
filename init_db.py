@@ -1,4 +1,4 @@
-"""Создаёт таблицу заявок и наполняет её тестовыми данными.
+"""Создаёт таблицы базы и наполняет их начальными данными.
 
 Запускать один раз:
 
@@ -7,20 +7,49 @@
 
 from db import connect
 
-SCHEMA = """
+SCHEMA_REQUESTS = """
 CREATE TABLE IF NOT EXISTS requests (
     id                INTEGER PRIMARY KEY AUTOINCREMENT,
     text              TEXT NOT NULL,
     author            TEXT,
     source            TEXT,
-    source_message_id TEXT,
+    -- UNIQUE здесь — не дубль проверки в коде, а последняя линия: проверка перед записью
+    -- считает повторы и не сыпет ошибками, а схема физически не даёт записать пару
+    -- «чат и сообщение» второй раз, даже если проверка чего-то не увидела.
+    -- У заявок с сайта (урок 8) в этом поле NULL: пустых строк UNIQUE допустит только одну,
+    -- а NULL — сколько угодно.
+    source_message_id TEXT UNIQUE,
     message_url       TEXT,
     created_at        TEXT,
+    matched_keywords  TEXT,
+    edit_date         TEXT,
+    content_hash      TEXT,
     ai_label          TEXT,
     ai_reason         TEXT,
     status            TEXT DEFAULT 'новое'
 )
 """
+
+# Источник — отдельная сущность, а не свойство находки: у источника, который пока не дал
+# ни одной заявки, нет строки в requests, чтобы записать на неё «когда там видели
+# последнее сообщение». Поэтому своя таблица.
+SCHEMA_SOURCES = """
+CREATE TABLE IF NOT EXISTS sources (
+    id             INTEGER PRIMARY KEY AUTOINCREMENT,
+    name           TEXT NOT NULL,
+    chat_id        TEXT,
+    last_seen_at   TEXT,
+    findings_count INTEGER DEFAULT 0
+)
+"""
+
+# Источники-заглушки: name — это то, чем адресуем чат (username публичной группы или
+# числовой id закрытой, в которой аккаунт состоит). Впишите вместо них свои группы.
+# chat_id заполнится сам при первом подключении — числовой id чата узнаётся только там.
+TEST_SOURCES = [
+    ("imya_pervoy_gruppy", None),
+    ("imya_vtoroy_gruppy", None),
+]
 
 # Выдуманные заявки — чтобы в кабинете было что смотреть до появления настоящих.
 TEST_REQUESTS = [
@@ -70,21 +99,36 @@ TEST_REQUESTS = [
 def main():
     conn = connect()
     try:
-        conn.execute(SCHEMA)
-        conn.executemany(
-            """
-            INSERT INTO requests (
-                text, author, source, source_message_id, message_url, created_at,
-                ai_label, ai_reason, status
+        conn.execute(SCHEMA_REQUESTS)
+        conn.execute(SCHEMA_SOURCES)
+
+        # И заявки, и источники добавляем только в пустые таблицы: скрипт можно
+        # запускать повторно, и от второго запуска в базе не должно появиться
+        # ни лишних тестовых заявок, ни заглушек рядом с настоящими источниками.
+        if not conn.execute("SELECT COUNT(*) FROM requests").fetchone()[0]:
+            conn.executemany(
+                """
+                INSERT INTO requests (
+                    text, author, source, source_message_id, message_url, created_at,
+                    ai_label, ai_reason, status
+                )
+                VALUES (?, ?, ?, ?, ?, ?, '', '', 'новое')
+                """,
+                TEST_REQUESTS,
             )
-            VALUES (?, ?, ?, ?, ?, ?, '', '', 'новое')
-            """,
-            TEST_REQUESTS,
-        )
+            print(f"Добавлено тестовых заявок: {len(TEST_REQUESTS)}")
+
+        if not conn.execute("SELECT COUNT(*) FROM sources").fetchone()[0]:
+            conn.executemany(
+                "INSERT INTO sources (name, chat_id) VALUES (?, ?)",
+                TEST_SOURCES,
+            )
+            print(f"Добавлено источников: {len(TEST_SOURCES)}")
+
         conn.commit()
     finally:
         conn.close()
-    print(f"База готова, добавлено заявок: {len(TEST_REQUESTS)}")
+    print("База готова.")
 
 
 if __name__ == "__main__":
