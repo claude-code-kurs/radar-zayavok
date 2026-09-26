@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Кабинет — статистика</title>
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+
+  <header class="cabinet-header">
+    <h1>Статистика</h1>
+    <p class="tagline">
+      <a href="/cabinet">К ленте</a> · <a href="/logout">Выйти</a>
+    </p>
+  </header>
+
+  <main>
+
+    <section>
+      <h2>Всего записей в базе</h2>
+      <p class="stats-number">{{ stats["total"] }}</p>
+      <p class="stats-note">
+        Сколько сообщений юзербот прочитал всего и сколько отсеял словарь, база не знает:
+        в неё попадают только те, что отсев уже прошли.
+      </p>
+    </section>
+
+    <section>
+      <h2>Что это по мнению ИИ</h2>
+      <ul class="stats-list">
+        {% for row in stats["by_type"] %}
+        <li>{{ row["name"] }} — {{ row["count"] }}</li>
+        {% endfor %}
+      </ul>
+    </section>
+
+    <section>
+      <h2>Наш профиль или нет</h2>
+      <ul class="stats-list">
+        {% for row in stats["by_profile"] %}
+        <li>{{ row["name"] }} — {{ row["count"] }}</li>
+        {% endfor %}
+      </ul>
+    </section>
+
+    <section>
+      <h2>Отсеяно до модели</h2>
+      <p class="stats-number">{{ stats["cheap_layer"] }}</p>
+      <p class="stats-note">
+        Самопрезентации, которые дешёвый слой распознал по тегам и оборотам, — за них
+        модели не платили.
+      </p>
+    </section>
+
+  </main>
+
+</body>
+</html>

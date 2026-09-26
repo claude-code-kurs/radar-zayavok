@@ -10,7 +10,11 @@
 
   <header class="cabinet-header">
     <h1>Заявки</h1>
-    <p class="tagline">Всего в базе: {{ requests | length }} · <a href="/logout">Выйти</a></p>
+    <p class="tagline">
+      Всего в базе: {{ requests | length }} ·
+      <a href="/cabinet/stats">Статистика</a> ·
+      <a href="/logout">Выйти</a>
+    </p>
   </header>
 
   <main>
@@ -27,6 +31,14 @@
       <p class="request-meta">
         {{ item["author"] }} · {{ item["source"] }} · {{ item["created_at"] }}
       </p>
+      {% if item["ai_type"] %}
+      <p class="request-ai">
+        ИИ: {{ item["ai_type"] }}{% if item["ai_profile"] %}, {{ item["ai_profile"] }}{% endif %}
+        {% if item["ai_reason"] %}— {{ item["ai_reason"] }}{% endif %}
+      </p>
+      {% else %}
+      <p class="request-ai request-ai-empty">ИИ: пока не размечено</p>
+      {% endif %}
     </article>
     {% endfor %}
   </main>

@@ -11,6 +11,11 @@ from settings import (
     KEYWORDS,
     NEAR_DUPLICATE_MIN_WORDS,
     NEAR_DUPLICATE_RATIO,
+    HIRING_MARKERS,
+    HIRING_VERBS,
+    HIRING_WHO,
+    SELF_PRESENTATION_PHRASES,
+    SELF_PRESENTATION_TAGS,
     TAIL_MARKERS,
 )
 
@@ -84,6 +89,54 @@ def matched_keywords(text):
         if any(word.startswith(keyword) for word in words):
             matched.append(keyword)
     return matched
+
+
+# «Ищу разработчика», «ищем себе в команду специалиста» — между глаголом и словом
+# о человеке допускаем пару слов, иначе не поймаем обычные формулировки.
+HIRING_RE = re.compile(
+    r"\b(" + "|".join(HIRING_VERBS) + r")\b(?:\s+\S+){0,2}\s+(" + "|".join(HIRING_WHO) + r")",
+)
+
+
+def hiring_marker(text):
+    """Какой признак поиска исполнителя нашёлся в тексте, или None.
+
+    Нужен, чтобы дешёвый слой не съедал заказы: в объявлении «приложите портфолио» —
+    это требование к отклику, а не рассказ о себе.
+    """
+    lowered = clean_text(text).lower()
+    for marker in HIRING_MARKERS:
+        if marker.lower() in lowered:
+            return marker
+    found = HIRING_RE.search(lowered)
+    if found:
+        return found.group(0)
+    return None
+
+
+def self_presentation_sign(text):
+    """Какой признак самопрезентации нашёлся в тексте, или None, если не нашёлся.
+
+    Дешёвый слой между словарём и моделью: исполнитель, предлагающий свои услуги,
+    пишет теми же словами, что и заказчик, — но выдаёт себя тегами и оборотами.
+    Возвращаем именно совпавший признак, а не просто «да»: он идёт в причину решения,
+    и по нему видно, какой оборот натащил лишнего.
+
+    Если рядом стоит признак поиска исполнителя, слой не срабатывает вовсе: те же
+    обороты встречаются в заказах, обращённые к исполнителю. Такую запись отдаём
+    модели — она разберётся, а дешёвый слой тут ошибается молча и в худшую сторону.
+    """
+    if hiring_marker(text):
+        return None
+
+    lowered = clean_text(text).lower()
+    for tag in SELF_PRESENTATION_TAGS:
+        if tag.lower() in lowered:
+            return tag
+    for phrase in SELF_PRESENTATION_PHRASES:
+        if phrase.lower() in lowered:
+            return phrase
+    return None
 
 
 def is_near_duplicate(text, known_texts):

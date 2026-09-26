@@ -9,7 +9,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
 from auth import COOKIE_NAME, check_password, check_session, make_session
-from db import get_requests
+from db import get_requests, get_stats
 
 load_dotenv()
 
@@ -63,6 +63,17 @@ def login_submit(request: Request, login: str = Form(), password: str = Form()):
         name="login.html",
         context={"error": "Неверный логин или пароль"},
         status_code=401,
+    )
+
+
+@app.get("/cabinet/stats")
+def cabinet_stats(request: Request):
+    if not check_session(request.cookies.get(COOKIE_NAME), SECRET_KEY):
+        return RedirectResponse("/login", status_code=303)
+    return templates.TemplateResponse(
+        request=request,
+        name="stats.html",
+        context={"stats": get_stats()},
     )
 
 
