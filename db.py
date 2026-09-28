@@ -105,7 +105,10 @@ def get_unclassified(limit):
     conn = connect()
     try:
         return conn.execute(
-            f"SELECT id, text FROM requests WHERE {UNCLASSIFIED} ORDER BY id LIMIT ?",
+            f"""
+            SELECT id, text, author, source, message_url, matched_keywords
+            FROM requests WHERE {UNCLASSIFIED} ORDER BY id LIMIT ?
+            """,
             (limit,),
         ).fetchall()
     finally:
@@ -246,6 +249,16 @@ def add_keyword(word, hot=False):
             (word, 1 if hot else 0),
         )
         conn.commit()
+    finally:
+        conn.close()
+
+
+def get_hot_keywords():
+    """Слова, помеченные «горячими» на странице настроек, — по ним шлём уведомления."""
+    conn = connect()
+    try:
+        rows = conn.execute("SELECT word FROM keywords WHERE hot = 1 ORDER BY word").fetchall()
+        return [row["word"] for row in rows]
     finally:
         conn.close()
 

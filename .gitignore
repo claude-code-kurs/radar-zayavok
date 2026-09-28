@@ -1,7 +1,8 @@
 .venv
 __pycache__
 .env
-radar.db
+radar.db*
+backups/
 *.session
 *.session-journal
 state.json

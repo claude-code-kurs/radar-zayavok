@@ -10,10 +10,12 @@
 
 import asyncio
 import json
+import logging
 import os
 from datetime import timezone
 from pathlib import Path
 
+import logs
 from dotenv import load_dotenv
 from telethon import TelegramClient
 from telethon.errors import RPCError
@@ -123,11 +125,14 @@ async def resolve_source(client, address):
     try:
         return await client.get_entity(address)
     except (ValueError, RPCError) as error:
-        print(
-            f"Источник «{address}» не найден. Причин две, и по ответу Telegram их не различить:\n"
-            f"  1) опечатка в username или id;\n"
-            f"  2) чат закрытый, а аккаунт юзербота в нём не состоит.\n"
-            f"  Ответ библиотеки: {error}"
+        logging.error(
+            "Источник «%s» не найден — пропускаем его и идём к следующему. "
+            "Причин две, и по ответу Telegram их не различить: "
+            "1) опечатка в username или id; "
+            "2) чат закрытый, а аккаунт юзербота в нём не состоит. "
+            "Ответ библиотеки: %s",
+            address,
+            error,
         )
         return None
 
@@ -210,9 +215,10 @@ async def process_source(client, source, state, keywords):
             skipped_duplicate += 1
             continue
 
+        author = await author_of(message)
         written_now = insert_request(
             text=text,
-            author=await author_of(message),
+            author=author,
             source=chat_name(entity),
             source_message_id=source_message_id,
             message_url=message_link(entity, message),
@@ -230,37 +236,53 @@ async def process_source(client, source, state, keywords):
         add_finding_to_source(source["id"])
         written += 1
 
+        # По каждой находке — строка в лог: по ней потом видно, что радар делал, а не
+        # только то, что он упал. Оценка ИИ здесь ещё не известна: её ставит classify.py
+        # позже, и в лог она попадает уже оттуда.
+        logging.info(
+            "находка | источник: %s | автор: %s | слова: %s | %s",
+            chat_name(entity),
+            author,
+            ", ".join(matched),
+            " ".join(text.split())[:120],
+        )
+
     # Дату последнего сообщения запоминаем, даже если ни одно не прошло фильтры:
     # старая дата здесь означает, что источник замолчал, а не что радар сломался.
     if newest_message_at:
         mark_source_seen(source["id"], to_iso(newest_message_at))
 
-    print(
-        f"{chat_name(entity)} ({chat_kind(entity)}): "
-        f"новых сообщений {len(messages)}, записано {written}"
+    logging.info(
+        "%s (%s): новых сообщений %s, записано %s",
+        chat_name(entity),
+        chat_kind(entity),
+        len(messages),
+        written,
     )
     if skipped_duplicate:
-        print(f"  отброшено как повтор: {skipped_duplicate}")
+        logging.info("отброшено как повтор: %s", skipped_duplicate)
     if skipped_seen:
         # Эти строки появляются только тогда, когда есть что сказать: счётчик,
         # который всегда показывает ноль, человек читает как ошибку.
-        print(f"  уже было в базе: {skipped_seen}")
+        logging.info("уже было в базе: %s", skipped_seen)
     if caught_by_schema:
-        print(
-            f"  ВНИМАНИЕ: повтор остановила схема базы, а не проверка: {caught_by_schema}. "
-            "Проверка на дубли чего-то не видит — стоит разобраться, пока это не стало нормой"
+        logging.warning(
+            "повтор остановила схема базы, а не проверка: %s. Проверка на дубли чего-то "
+            "не видит — стоит разобраться, пока это не стало нормой",
+            caught_by_schema,
         )
     if with_text >= SUSPICIOUS_FROM and passed_keywords == with_text:
-        print(
-            f"  ВНИМАНИЕ: словарь не отбросил ни одного сообщения из {with_text} — "
-            "скорее сломан, чем удачлив. Проверьте, не совпадает ли ключевое слово "
-            "со служебной припиской канала"
+        logging.warning(
+            "словарь не отбросил ни одного сообщения из %s — скорее сломан, чем удачлив. "
+            "Проверьте, не совпадает ли ключевое слово со служебной припиской канала",
+            with_text,
         )
     if len(messages) >= MAX_MESSAGES_PER_SOURCE:
-        print("  упёрлись в потолок за этот заход — осталось ещё, следующий заход продолжит")
+        logging.info("упёрлись в потолок за этот заход — осталось ещё, следующий заход продолжит")
 
 
 async def main():
+    logs.setup()
     if not API_ID or not API_HASH:
         raise SystemExit("В .env нет API_ID или API_HASH — впишите значения с my.telegram.org.")
 

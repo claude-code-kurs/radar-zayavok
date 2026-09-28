@@ -8,6 +8,7 @@ from fastapi.responses import RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
+import notify
 from auth import COOKIE_NAME, check_password, check_session, make_session
 from db import (
     STATUSES,
@@ -209,6 +210,16 @@ def site_request(
 ):
     """Заявка с формы на визитке — в ту же таблицу, что и находки юзербота."""
     insert_site_request(author=name.strip(), contact=contact.strip(), text=task.strip())
+
+    # Уведомление — после записи и никогда вместо неё: если бот недоступен, заявка уже
+    # в базе, а посетитель всё равно видит «отправлено». Пометка «с сайта» нужна,
+    # чтобы в боте было видно, откуда пришла заявка: из чата или с формы.
+    notify.send(
+        "Заявка с сайта\n"
+        f"Имя: {name.strip()}\n"
+        f"Контакт: {contact.strip()}\n"
+        f"\n{task.strip()[:500]}"
+    )
     return templates.TemplateResponse(
         request=request,
         name="index.html",
