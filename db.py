@@ -18,7 +18,7 @@ def get_requests():
     try:
         return conn.execute(
             """
-            SELECT id, text, author, source, created_at
+            SELECT id, text, author, source, message_url, created_at
             FROM requests
             ORDER BY created_at DESC
             """

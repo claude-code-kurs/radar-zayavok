@@ -26,6 +26,11 @@
       {% endif %}
       <p class="request-meta">
         {{ item["author"] }} · {{ item["source"] }} · {{ item["created_at"] }}
+        {# Ссылка ведёт к исходному сообщению в чате — то, ради чего радар и нужен.
+           У заявок без ссылки (например, пришедших не из чата) блок просто не выводится. #}
+        {% if item["message_url"] %}
+        · <a href="{{ item['message_url'] }}" target="_blank" rel="noopener">сообщение в Telegram</a>
+        {% endif %}
       </p>
     </article>
     {% endfor %}
