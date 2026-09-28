@@ -232,16 +232,29 @@ def get_keywords():
     """Ключевые слова из базы: их правят на странице настроек, юзербот читает отсюда."""
     conn = connect()
     try:
-        return conn.execute("SELECT id, word FROM keywords ORDER BY word").fetchall()
+        return conn.execute("SELECT id, word, hot FROM keywords ORDER BY word").fetchall()
     finally:
         conn.close()
 
 
-def add_keyword(word):
+def add_keyword(word, hot=False):
     conn = connect()
     try:
         # Одно и то же слово дважды не заводим: в схеме на это стоит UNIQUE.
-        conn.execute("INSERT OR IGNORE INTO keywords (word) VALUES (?)", (word,))
+        conn.execute(
+            "INSERT OR IGNORE INTO keywords (word, hot) VALUES (?, ?)",
+            (word, 1 if hot else 0),
+        )
+        conn.commit()
+    finally:
+        conn.close()
+
+
+def set_keyword_hot(keyword_id, hot):
+    """Пометка «горячее». Пока ни на что не влияет — заработает в уроке 10."""
+    conn = connect()
+    try:
+        conn.execute("UPDATE keywords SET hot = ? WHERE id = ?", (1 if hot else 0, keyword_id))
         conn.commit()
     finally:
         conn.close()

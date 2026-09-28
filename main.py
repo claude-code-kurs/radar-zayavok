@@ -22,6 +22,7 @@ from db import (
     insert_site_request,
     rename_keyword,
     rename_source,
+    set_keyword_hot,
     set_status,
 )
 
@@ -166,20 +167,28 @@ def settings_source_delete(request: Request, source_id: int):
 
 
 @app.post("/cabinet/settings/keywords/add")
-def settings_keyword_add(request: Request, word: str = Form()):
+def settings_keyword_add(request: Request, word: str = Form(), hot: bool = Form(False)):
     if not authorized(request):
         return RedirectResponse("/login", status_code=303)
     if word.strip():
-        add_keyword(word.strip().lower())
+        add_keyword(word.strip().lower(), hot)
     return RedirectResponse("/cabinet/settings", status_code=303)
 
 
 @app.post("/cabinet/settings/keywords/{keyword_id}/save")
-def settings_keyword_save(request: Request, keyword_id: int, word: str = Form()):
+def settings_keyword_save(
+    request: Request,
+    keyword_id: int,
+    word: str = Form(),
+    hot: bool = Form(False),
+):
     if not authorized(request):
         return RedirectResponse("/login", status_code=303)
     if word.strip():
         rename_keyword(keyword_id, word.strip().lower())
+    # Снятая галочка в форму не отправляется вовсе, поэтому пишем пометку всегда:
+    # иначе снять её было бы нельзя, только поставить.
+    set_keyword_hot(keyword_id, hot)
     return RedirectResponse("/cabinet/settings", status_code=303)
 
 

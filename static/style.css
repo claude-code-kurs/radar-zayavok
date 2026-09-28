@@ -295,6 +295,15 @@ footer p {
   margin-top: 16px;
 }
 
+.settings-hot {
+  display: inline-flex;
+  gap: 4px;
+  align-items: center;
+  font-size: 15px;
+  color: var(--muted);
+  white-space: nowrap;
+}
+
 .settings-table input,
 .settings-list input,
 .settings-add input {

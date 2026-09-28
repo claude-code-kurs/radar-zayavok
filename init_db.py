@@ -57,7 +57,13 @@ CREATE TABLE IF NOT EXISTS sources (
 SCHEMA_KEYWORDS = """
 CREATE TABLE IF NOT EXISTS keywords (
     id   INTEGER PRIMARY KEY AUTOINCREMENT,
-    word TEXT NOT NULL UNIQUE
+    word TEXT NOT NULL UNIQUE,
+    -- Пометка «горячее» заводится пустой и пока ни на что не влияет: по ней в уроке 10
+    -- будут отбираться заявки, о которых стоит прислать уведомление сразу. Заводим
+    -- заранее по той же причине, что поля под оценку ИИ в уроке 4: переделывать модель
+    -- данных задним числом дороже, чем добавить поле сразу, — тем более что к уроку 10
+    -- эта база живёт на сервере и в ней настоящие находки.
+    hot  INTEGER DEFAULT 0
 )
 """
 

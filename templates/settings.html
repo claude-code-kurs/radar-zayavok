@@ -62,6 +62,8 @@
       <h2>Ключевые слова</h2>
       <p class="stats-note">
         Совпадение считается с начала слова: «бот» найдётся в «боты», но не внутри «работа».
+        Галочка «горячее» пока ни на что не влияет — по ней в уроке 10 будут отбираться
+        заявки, о которых бот пришлёт уведомление сразу.
       </p>
 
       <ul class="settings-list">
@@ -69,6 +71,10 @@
         <li>
           <form method="post" action="/cabinet/settings/keywords/{{ keyword['id'] }}/save">
             <input type="text" name="word" value="{{ keyword['word'] }}" required>
+            <label class="settings-hot">
+              <input type="checkbox" name="hot" {% if keyword["hot"] %}checked{% endif %}>
+              горячее
+            </label>
             <button type="submit">Сохранить</button>
           </form>
           <form method="post" action="/cabinet/settings/keywords/{{ keyword['id'] }}/delete">
@@ -80,6 +86,10 @@
 
       <form class="settings-add" method="post" action="/cabinet/settings/keywords/add">
         <input type="text" name="word" placeholder="новое слово" required>
+        <label class="settings-hot">
+          <input type="checkbox" name="hot">
+          горячее
+        </label>
         <button type="submit">Добавить слово</button>
       </form>
     </section>
