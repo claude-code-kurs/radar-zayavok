@@ -330,6 +330,35 @@ footer p {
   background: #b3261e;
 }
 
+/* Кейс на визитке */
+
+.case-study-what {
+  margin: 0 0 16px;
+}
+
+.case-study-pair {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.case-study-side {
+  flex: 1 1 260px;
+  padding: 14px 16px;
+  border-left: 3px solid var(--accent);
+  background: #f6f8ff;
+}
+
+.case-study-side h3 {
+  margin: 0 0 6px;
+  font-size: 17px;
+}
+
+.case-study-side p {
+  margin: 0;
+  color: var(--muted);
+}
+
 /* Форма заявки на визитке */
 
 .request-form form {
