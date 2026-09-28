@@ -18,7 +18,7 @@ from pathlib import Path
 import logs
 from dotenv import load_dotenv
 from telethon import TelegramClient
-from telethon.errors import RPCError
+from telethon.errors import FloodWaitError, RPCError
 from telethon.tl.types import Channel, Chat, User
 
 from db import (
@@ -308,7 +308,21 @@ async def main():
 
         state = load_state()
         for source in sources:
-            await process_source(client, source, state, keywords)
+            try:
+                await process_source(client, source, state, keywords)
+            except FloodWaitError as error:
+                # Telegram сам говорит, сколько ждать, — честно пересиживаем паузу и идём
+                # дальше. Падать здесь нельзя: на сервере процесс поднимет systemd, он
+                # снова полезет с теми же запросами, и ожидание начнётся заново.
+                logging.warning(
+                    "Telegram просит подождать %s секунд — пересиживаем и продолжаем с того "
+                    "же места. Если это повторяется, увеличьте интервал опроса (сейчас %s секунд).",
+                    error.seconds,
+                    POLL_INTERVAL,
+                )
+                await asyncio.sleep(error.seconds + 5)
+            # Состояние сохраняем в любом случае: даже если источник оборвался на середине,
+            # обработанные сообщения уже не будут прочитаны заново.
             save_state(state)
 
         await asyncio.sleep(POLL_INTERVAL)
