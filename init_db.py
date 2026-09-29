@@ -16,7 +16,12 @@ CREATE TABLE IF NOT EXISTS requests (
     source_message_id TEXT,
     message_url       TEXT,
     created_at        TEXT,
-    ai_label          TEXT,
+    -- Оценка ИИ — две оси, а не одна метка: тип сообщения отвечает на вопрос «что это»
+    -- (заказ, вакансия, вопрос по задаче, предложение услуг, другое), профиль — на
+    -- вопрос «наше ли оно» (наш, не наш). Заводим пустыми сейчас, заполнять начнёт
+    -- урок 7: переделывать модель данных задним числом дороже, чем завести поле сразу.
+    ai_type           TEXT,
+    ai_profile        TEXT,
     ai_reason         TEXT,
     status            TEXT DEFAULT 'новое'
 )
@@ -79,9 +84,9 @@ def main():
                 """
                 INSERT INTO requests (
                     text, author, source, source_message_id, message_url, created_at,
-                    ai_label, ai_reason, status
+                    ai_type, ai_profile, ai_reason, status
                 )
-                VALUES (?, ?, ?, ?, ?, ?, '', '', 'новое')
+                VALUES (?, ?, ?, ?, ?, ?, '', '', '', 'новое')
                 """,
                 TEST_REQUESTS,
             )
