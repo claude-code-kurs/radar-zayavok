@@ -13,6 +13,10 @@ UNCLASSIFIED = "ai_type IS NULL OR ai_type = ''"
 # Статусы работы с заявкой. Первый — значение по умолчанию.
 STATUSES = ("новое", "в работу", "мусор", "отработано")
 
+# Тип, который не показывается в общей ленте: человек описал задачу, но исполнителя
+# не ищет. Такие записи живут за отдельным переключателем в кабинете.
+QUESTION_TYPE = "вопрос по задаче"
+
 DB_PATH = Path(__file__).parent / "radar.db"
 
 
@@ -22,11 +26,16 @@ def connect():
     return conn
 
 
-def get_requests(status=None, query=None):
+def get_requests(status=None, query=None, questions=False):
     """Заявки для ленты кабинета, сначала самые свежие.
 
     Можно сузить: по статусу и по подстроке в тексте заявки. Пустые значения означают
     «не сужать» — так фильтр и поиск складываются друг с другом.
+
+    `questions` разводит два списка. По умолчанию лента показывает заявки, а записи с
+    типом «вопрос по задаче» в неё не попадают: человек описал проблему, но исполнителя
+    не ищет — это материал для наблюдения, а не работа. С `questions=True` показываются
+    только они, отдельным списком за переключателем.
     """
     sql = """
         SELECT id, text, author, contact, source, message_url, created_at,
@@ -35,6 +44,13 @@ def get_requests(status=None, query=None):
     """
     conditions = []
     values = []
+    if questions:
+        conditions.append("ai_type = ?")
+        values.append(QUESTION_TYPE)
+    else:
+        # Неразмеченные записи из ленты не убираем: пока оценки нет, это ещё не «вопрос».
+        conditions.append("(ai_type IS NULL OR ai_type <> ?)")
+        values.append(QUESTION_TYPE)
     if status:
         conditions.append("status = ?")
         values.append(status)
@@ -48,6 +64,17 @@ def get_requests(status=None, query=None):
     conn = connect()
     try:
         return conn.execute(sql, values).fetchall()
+    finally:
+        conn.close()
+
+
+def count_questions():
+    """Сколько записей помечено «вопрос по задаче» — для подписи переключателя."""
+    conn = connect()
+    try:
+        return conn.execute(
+            "SELECT COUNT(*) FROM requests WHERE ai_type = ?", (QUESTION_TYPE,)
+        ).fetchone()[0]
     finally:
         conn.close()
 
