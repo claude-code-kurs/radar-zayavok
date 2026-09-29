@@ -29,7 +29,7 @@ def get_requests(status=None, query=None):
     «не сужать» — так фильтр и поиск складываются друг с другом.
     """
     sql = """
-        SELECT id, text, author, contact, source, created_at,
+        SELECT id, text, author, contact, source, message_url, created_at,
                ai_type, ai_profile, ai_reason, status
         FROM requests
     """
