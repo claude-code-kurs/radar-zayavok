@@ -14,6 +14,7 @@ from db import (
     STATUSES,
     add_keyword,
     add_source,
+    count_questions,
     delete_keyword,
     delete_source,
     get_keywords,
@@ -106,17 +107,19 @@ def logout():
 
 
 @app.get("/cabinet")
-def cabinet(request: Request, status: str = "", q: str = ""):
+def cabinet(request: Request, status: str = "", q: str = "", questions: int = 0):
     if not authorized(request):
         return RedirectResponse("/login", status_code=303)
     return templates.TemplateResponse(
         request=request,
         name="cabinet.html",
         context={
-            "requests": get_requests(status=status, query=q),
+            "requests": get_requests(status=status, query=q, questions=bool(questions)),
             "statuses": STATUSES,
             "status": status,
             "query": q,
+            "questions": bool(questions),
+            "questions_count": count_questions(),
         },
     )
 
