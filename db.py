@@ -149,9 +149,10 @@ def insert_request(
             """
             INSERT INTO requests (
                 text, author, source, source_message_id, message_url, created_at,
-                matched_keywords, edit_date, content_hash, ai_label, ai_reason, status
+                matched_keywords, edit_date, content_hash,
+                ai_type, ai_profile, ai_reason, status
             )
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, '', '', 'новое')
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, '', '', '', 'новое')
             """,
             (
                 text,
