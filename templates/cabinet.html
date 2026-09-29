@@ -9,8 +9,18 @@
 <body>
 
   <header class="cabinet-header">
-    <h1>Заявки</h1>
-    <p class="tagline">Всего в базе: {{ requests | length }} · <a href="/logout">Выйти</a></p>
+    <h1>{% if questions %}Вопросы по задаче{% else %}Заявки{% endif %}</h1>
+    <p class="tagline">
+      Показано: {{ requests | length }} ·
+      {# Вопросы по задаче держим за отдельной ссылкой: человек описал проблему, но
+         исполнителя не ищет — это материал для наблюдения, а не заявка. #}
+      {% if questions %}
+      <a href="/cabinet">К заявкам</a>
+      {% else %}
+      <a href="/cabinet?questions=1">Вопросы по задаче ({{ questions_count }})</a>
+      {% endif %}
+      · <a href="/logout">Выйти</a>
+    </p>
   </header>
 
   <main>

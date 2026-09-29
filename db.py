@@ -16,18 +16,48 @@ def connect():
     return conn
 
 
-def get_requests():
-    """Все заявки для ленты кабинета, сначала самые свежие."""
+# Тип, который не показывается в общей ленте: человек описал задачу, но исполнителя
+# не ищет. Такие записи живут за отдельным переключателем в кабинете.
+QUESTION_TYPE = "вопрос по задаче"
+
+
+def get_requests(questions=False):
+    """Заявки для ленты кабинета, сначала самые свежие.
+
+    По умолчанию лента показывает заявки, а записи с типом «вопрос по задаче» в неё не
+    попадают: человек описал проблему, но исполнителя не ищет — это материал для
+    наблюдения, а не работа. С `questions=True` показываются только они, отдельным
+    списком за переключателем.
+    """
+    if questions:
+        where = "WHERE ai_type = ?"
+    else:
+        # Неразмеченные записи из ленты не убираем: пока оценки нет, это ещё не «вопрос».
+        where = "WHERE ai_type IS NULL OR ai_type <> ?"
+
     conn = connect()
     try:
         return conn.execute(
-            """
+            f"""
             SELECT id, text, author, source, message_url, created_at,
                    ai_type, ai_profile, ai_reason
             FROM requests
+            {where}
             ORDER BY created_at DESC
-            """
+            """,
+            (QUESTION_TYPE,),
         ).fetchall()
+    finally:
+        conn.close()
+
+
+def count_questions():
+    """Сколько записей помечено «вопрос по задаче» — для подписи переключателя."""
+    conn = connect()
+    try:
+        return conn.execute(
+            "SELECT COUNT(*) FROM requests WHERE ai_type = ?", (QUESTION_TYPE,)
+        ).fetchone()[0]
     finally:
         conn.close()
 

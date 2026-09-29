@@ -9,7 +9,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
 from auth import COOKIE_NAME, check_password, check_session, make_session
-from db import get_requests
+from db import count_questions, get_requests
 
 load_dotenv()
 
@@ -74,11 +74,15 @@ def logout():
 
 
 @app.get("/cabinet")
-def cabinet(request: Request):
+def cabinet(request: Request, questions: int = 0):
     if not check_session(request.cookies.get(COOKIE_NAME), SECRET_KEY):
         return RedirectResponse("/login", status_code=303)
     return templates.TemplateResponse(
         request=request,
         name="cabinet.html",
-        context={"requests": get_requests()},
+        context={
+            "requests": get_requests(questions=bool(questions)),
+            "questions": bool(questions),
+            "questions_count": count_questions(),
+        },
     )
