@@ -34,8 +34,15 @@
       <label for="q">Поиск по тексту</label>
       <input type="search" id="q" name="q" value="{{ query }}">
 
+      {# Вопросы по задаче держим за переключателем: человек описал проблему, но
+         исполнителя не ищет — это материал для наблюдения, а не заявка. #}
+      <label class="filters-questions">
+        <input type="checkbox" name="questions" value="1" {% if questions %}checked{% endif %}>
+        только вопросы по задаче ({{ questions_count }})
+      </label>
+
       <button type="submit">Показать</button>
-      {% if status or query %}
+      {% if status or query or questions %}
       <a class="filters-reset" href="/cabinet">сбросить</a>
       {% endif %}
     </form>
